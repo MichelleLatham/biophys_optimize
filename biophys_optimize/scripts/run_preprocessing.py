@@ -13,7 +13,7 @@ import os
 import argschema as ags
 
 import allensdk.core.json_utilities as ju
-from ipfx.nwb_reader import create_nwb_reader
+from ipfx.nwb import NwbReader
 import biophys_optimize.preprocess as preprocess
 from biophys_optimize.step_analysis import StepAnalysis
 from biophys_optimize.sweep_functions import sweeps_from_nwb
@@ -62,13 +62,16 @@ def main(paths, sweeps, dendrite_type, bridge_avg, passive_fit_start_time,
         output_json, **kwargs):
     """Main sequence of pre-processing and passive fitting"""
 
-    # Extract Sweep objects (from IPFX package) from NWB file
-    nwb_path = paths["nwb"] # nwb - neurodata without borders (ephys data)
-    nwb_data = create_nwb_reader(nwb_path)
-    core_1_lsq, c1_start, c1_end = sweeps_from_nwb(
-        nwb_data, sweeps["core_1_long_squares"])
-    core_2_lsq, c2_start, c2_end = sweeps_from_nwb(
-        nwb_data, sweeps["core_2_long_squares"])
+    # 1. Use the new NwbReader class
+    nwb_path = paths["nwb"]
+    nwb_data = NwbReader(nwb_path)
+
+    # 2. Use the .get_sweeps() method on the instance
+    core_1_lsq = nwb_data.get_sweeps(sweeps["core_1_long_squares"])
+    c1_start, c1_end = min(sweeps["core_1_long_squares"]), max(sweeps["core_1_long_squares"])
+
+    core_2_lsq = nwb_data.get_sweeps(sweeps["core_2_long_squares"])
+    c2_start, c2_end = min(sweeps["core_2_long_squares"]), max(sweeps["core_2_long_squares"])
 
     # Choose sweeps to train the model
     sweep_set_to_fit, start, end = preprocess.select_core_1_or_core_2_sweeps(
@@ -94,10 +97,8 @@ def main(paths, sweeps, dendrite_type, bridge_avg, passive_fit_start_time,
     # during optimization
 
     # Load noise sweeps to check highest current used
-    noise_1, _, _ = sweeps_from_nwb(
-        nwb_data, sweeps["seed_1_noise"])
-    noise_2, _, _ = sweeps_from_nwb(
-        nwb_data, sweeps["seed_2_noise"])
+    noise_1 = nwb_data.get_sweeps(sweeps["seed_1_noise"])
+    noise_2 = nwb_data.get_sweeps(sweeps["seed_2_noise"])
 
     max_i = preprocess.max_i_for_depol_block_check(
         core_1_lsq, core_2_lsq, noise_1, noise_2)
