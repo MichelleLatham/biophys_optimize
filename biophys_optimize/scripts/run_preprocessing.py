@@ -13,7 +13,7 @@ import os
 import argschema as ags
 
 import allensdk.core.json_utilities as ju
-from ipfx.nwb import NwbReader
+from ipfx.ephys_data_set import EphysDataSet
 import biophys_optimize.preprocess as preprocess
 from biophys_optimize.step_analysis import StepAnalysis
 from biophys_optimize.sweep_functions import sweeps_from_nwb
@@ -61,14 +61,19 @@ def main(paths, sweeps, dendrite_type, bridge_avg, passive_fit_start_time,
         electrode_capacitance, junction_potential, random_seeds,
         output_json, **kwargs):
     """Main sequence of pre-processing and passive fitting"""
-
-    # 1. Use the new NwbReader class
     nwb_path = paths["nwb"]
-    nwb_data = NwbReader(nwb_path)
+    # 1. Initialize the dataset
+    nwb_data = EphysDataSet(nwb_path)
 
-    # 2. Use the .get_sweeps() method on the instance
+    # 2. Retrieve sweeps directly from the dataset object
+    # Note: The method name might be .get_sweeps() or .sweeps()
     core_1_lsq = nwb_data.get_sweeps(sweeps["core_1_long_squares"])
-    c1_start, c1_end = min(sweeps["core_1_long_squares"]), max(sweeps["core_1_long_squares"])
+
+    # 3. Handle start/end times
+    # If the old utility function provided these, you may need to 
+    # derive them from the sweep objects themselves.
+    c1_start = min(sweeps["core_1_long_squares"])
+    c1_end = max(sweeps["core_1_long_squares"])
 
     core_2_lsq = nwb_data.get_sweeps(sweeps["core_2_long_squares"])
     c2_start, c2_end = min(sweeps["core_2_long_squares"]), max(sweeps["core_2_long_squares"])
